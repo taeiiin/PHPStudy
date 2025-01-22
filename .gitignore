@@ -1,0 +1,16 @@
+# OS 관련 파일
+.DS_Store
+
+# 백업 파일
+*~
+
+# Composer 설치 파일 및 디렉터리
+composer.phar
+/vendor/
+
+# 데이터 파일
+data/
+
+# 캐시 또는 임시 파일
+*.log
+*.cache
