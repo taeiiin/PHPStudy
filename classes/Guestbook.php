@@ -2,35 +2,64 @@
 
 namespace Test;
 
+use Carbon\Carbon;
+
 class Guestbook implements \JsonSerializable
 {
-    private array $data;
+    private string $id;
+    private string $name;
+    private string $msg;
+    private Carbon $createdAt;
 
     public function __construct(array $data = [])
     {
-        $this->data = [
-            'id' => $data['id'] ?? uniqid(),
-            'name' => $data['name'] ?? '',
-            'msg' => $data['msg'] ?? '',
-            'createdAt' => $data['createdAt'] ?? (new \DateTime())->format('Y-m-d H:i:s'),
-        ];
+        $this->id = $data['id'] ?? uniqid();
+        $this->name = $data['name'] ?? '';
+        $this->msg = $data['msg'] ?? '';
+        $this->createdAt = isset($data['createdAt']) ? Carbon::parse($data['createdAt']) : Carbon::now();
     }
 
-    //JSON -> 객체
     public static function of(array $item): Guestbook
     {
-        return new Guestbook($item);
+        return new self($item);
     }
 
-    //JSON 직렬화
     public function jsonSerialize(): array
     {
-        return $this->data;
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'msg' => $this->msg,
+            'createdAt' => $this->createdAt->toDateTimeString(),
+        ];
     }
 
     //동적 데이터 접근자
     public function __get(string $key): string
     {
-        return $this->data[$key] ?? '';
+        if ($key === 'createdAt') {
+            return $this->createdAt->toDateTimeString();
+        }
+        return $this->$key ?? '';
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getMsg(): string
+    {
+        return $this->msg;
+    }
+
+    public function getCreatedAt(): string
+    {
+        return $this->createdAt->toDateTimeString();
     }
 }

@@ -3,16 +3,26 @@ namespace Test;
 
 class GuestMgr extends DataMgr
 {
-    public function loadGuests(int $order = 0): array
+    public function __construct()
     {
-        $guests = $this->loadContents(Guestbook::class);
-        return $order === 0 ? array_reverse($guests) : $guests;
+        parent::__construct('Guest');
+    }
+
+    public function loadGuests(int $orderBy = self::DESC): array
+    {
+        return $this->loadContents(Guestbook::class, $orderBy);
     }
 
     public function saveGuests(Guestbook $guest): void
     {
-        $guests = $this->loadGuests(1);
-        $guests[] = $guest;
-        $this->saveContents($guests);
+        $this->saveContents($guest->jsonSerialize());
+    }
+
+    function map($item): Guestbook
+    {
+        if (!method_exists(Guestbook::class, 'of')) {
+            return new Guestbook($item);
+        }
+        return Guestbook::of($item);
     }
 }

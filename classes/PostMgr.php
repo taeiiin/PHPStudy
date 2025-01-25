@@ -4,22 +4,32 @@ namespace Test;
 
 class PostMgr extends DataMgr
 {
-    public function loadPosts(int $order = 0): array
+
+    public function __construct()
     {
-        $posts = $this->loadContents(Post::class);
-        return $order === 0 ? array_reverse($posts) : $posts;
+        parent::__construct('Post');
+    }
+
+    public function loadPosts(int $orderBy = self::DESC): array
+    {
+        return $this->loadContents(Post::class, $orderBy);
     }
 
     public function savePost(Post $post): void
     {
-        $posts = $this->loadPosts(1);
-        $posts[] = $post;
-        $this->saveContents($posts);
+        $this->saveContents($post->jsonSerialize());
     }
 
     public function deletePost(string $id): void
     {
-        $posts = array_filter($this->loadPosts(1), fn($post) => $post['id'] !== $id);
-        $this->saveContents(array_values($posts));
+        $this->deleteContents($id);
+    }
+
+    function map($item): Post
+    {
+        if (!method_exists(Post::class, 'of')) {
+            return Post::of($item);
+        }
+        return new Post($item);
     }
 }

@@ -14,3 +14,4 @@ data/
 # 캐시 또는 임시 파일
 *.log
 *.cache
+.env

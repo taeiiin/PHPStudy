@@ -4,7 +4,7 @@ use Test\PostMgr;
 
 if(isset($_GET['id'])) {
   $id = htmlspecialchars($_GET['id']);
-  $postMgr = new PostMgr('data/board.json');
+  $postMgr = new PostMgr();
   $postMgr->deletePost($id);
 
   header("Location: board.php");

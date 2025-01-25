@@ -6,17 +6,17 @@ use Test\Post;
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     $title = htmlspecialchars($_POST['title']);
     $writer = htmlspecialchars($_POST['writer']);
-    $content = htmlspecialchars($_POST['content']);
+    $posting = htmlspecialchars($_POST['posting']);
     $category = htmlspecialchars($_POST['category']);
 
     $post = new Post([
         'title' => $title,
         'writer' => $writer,
-        'content' => $content,
+        'posting' => $posting,
         'category' => $category,
     ]);
 
-    $postMgr = new PostMgr('data/board.json');
+    $postMgr = new PostMgr();
     $postMgr->savePost($post);
 
     header("Location: board.php");
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     <form method="POST">
         제목<input type="text" name="title" required><br>
         글쓴이<input type="text" name="writer" required><br>
-        내용<textarea name="content" rows="15px" required></textarea><br>
+        내용<textarea name="posting" rows="15px" required></textarea><br>
         카테고리
         <select name="category" required>
             <option value="자유">자유</option>

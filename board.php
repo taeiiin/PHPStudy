@@ -2,14 +2,14 @@
 require_once __DIR__ . '/vendor/autoload.php';
 use Test\PostMgr;
 
-$postMgr = new PostMgr('data/board.json');
+$postMgr = new PostMgr();
 
-$search = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : "";
-$posts = $postMgr->loadPosts();
+$search = $_GET['search'] ?? '';
+$posts = $postMgr->loadPosts(PostMgr::DESC);
 
 if (!empty($search)) {
     $posts = array_filter($posts, function ($post) use ($search) {
-        return stripos($post->title, $search) !== false || stripos($post->content, $search) !== false;
+        return stripos($post->title, $search) !== false || stripos($post->posting, $search) !== false;
     });
 }
 ?>
@@ -115,19 +115,21 @@ if (!empty($search)) {
         </form>
     </div>
     <hr class="line">
-    <?php
-    if (!empty($posts)) {
-        foreach($posts as $index => $post):
-            echo "<div class='container'>";
-            echo "<h3>" . htmlspecialchars($post->title) . " <small>" . htmlspecialchars($post->writer) . "</small></h3>";
-            echo "<p>" . nl2br(htmlspecialchars($post->content)) . "</p>";
-            echo "<small>" . htmlspecialchars($post->category) . " | " . $post->createdAt . "</small> ";
-            echo "<small><a href='board_d.php?id=" . $post->id . "'>삭제</a></small>";
-            echo "<hr></div>";
-        endforeach;
-    } else {
-        echo "<p class='none'>작성된 글 없음</p>";
-    }
-    ?>
+    <?php if (!empty($posts)): ?>
+        <?php foreach ($posts as $post): ?>
+            <div class="container">
+                <h3>
+                    <?= htmlspecialchars($post->getTitle()) ?>
+                    <small><?= htmlspecialchars($post->getWriter()) ?></small>
+                </h3>
+                <p><?= nl2br(htmlspecialchars($post->getPosting())) ?></p>
+                <small><?= htmlspecialchars($post->getCategory()) ?> | <?= htmlspecialchars($post->getCreatedAt()) ?></small>
+                <small><a href="board_d.php?id=<?= htmlspecialchars($post->getId()) ?>">삭제</a></small>
+                <hr>
+            </div>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <p class="none">작성된 글 없음</p>
+    <?php endif; ?>
 </body>
 </html>

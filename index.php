@@ -4,8 +4,8 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Test\PostMgr;
 use Test\GuestMgr;
 
-$postMgr = new PostMgr('data/board.json');
-$guestMgr = new GuestMgr('data/guest.json');
+$postMgr = new PostMgr();
+$guestMgr = new GuestMgr();
 $posts = $postMgr->loadPosts();
 $guests = $guestMgr->loadGuests();
 ?>
@@ -62,33 +62,38 @@ $guests = $guestMgr->loadGuests();
             <h2>Guest Book</h2>
             <a href="guestb.php">방명록 보기</a><br>
             <hr>
-            <?php
-            if (!empty($guests)) {
-                foreach($guests as $guest) {
-                    echo "<div><strong>" . htmlspecialchars($guest->name) . "</strong> : ";
-                    echo nl2br(htmlspecialchars($guest->msg))."<br><small>" . $guest->createdAt . "</small></div><hr>";
-                }
-            } else {
-                echo "<p>방명록 없음</p>";
-            }
-            ?>
+            <?php if (!empty($guests)): ?>
+                <?php foreach ($guests as $guest): ?>
+                    <div>
+                        <strong><?= htmlspecialchars($guest->getName()) ?></strong> :
+                        <?= nl2br(htmlspecialchars($guest->getMsg())) ?><br>
+                        <small><?= $guest->getCreatedAt() ?></small>
+                    </div>
+                    <hr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>방명록 없음</p>
+            <?php endif; ?>
         </div>
         <div class="board">
             <h2>Board</h2>
             <a href="board.php">게시판 보기</a><br>
             <hr>
-            <?php
-            if (!empty($posts)) {
-                foreach($posts as $post) {
-                    echo "<div><h3>" . htmlspecialchars($post->title) . " <small>" . htmlspecialchars($post->writer) . "</small></h3>";
-                    echo "<p>" . nl2br(htmlspecialchars($post->content)) . "</p>";
-                    echo "<small>" . $post->category . " | " . $post->createdAt . "</small>";
-                    echo "</div><hr>";
-                }
-            } else {
-                echo "<p>게시글 없음</p>";
-            }
-            ?>
+            <?php if (!empty($posts)): ?>
+                <?php foreach ($posts as $post): ?>
+                    <div>
+                        <h3>
+                            <?= htmlspecialchars($post->getTitle()) ?>
+                            <small><?= htmlspecialchars($post->getWriter()) ?></small>
+                        </h3>
+                        <p><?= nl2br(htmlspecialchars($post->getPosting())) ?></p>
+                        <small><?= htmlspecialchars($post->getCategory()) ?> | <?= $post->getCreatedAt() ?></small>
+                    </div>
+                    <hr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>게시글 없음</p>
+            <?php endif; ?>
         </div>
     </div>
 </body>

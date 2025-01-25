@@ -1,9 +1,10 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
+
 use Test\GuestMgr;
 use Test\Guestbook;
 
-$fileMgr = new GuestMgr('data/guest.json');
+$guestMgr = new GuestMgr();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = htmlspecialchars($_POST['name']);
@@ -14,13 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'msg' => $msg,
     ]);
 
-    $fileMgr->saveGuests($guest);
+    $guestMgr->saveGuests($guest);
 
     header("Location: guestb.php");
     exit;
 }
 
-$entries = $fileMgr->loadGuests();
+$entries = $guestMgr->loadGuests();
 ?>
 
 <!DOCTYPE html>
@@ -118,16 +119,17 @@ $entries = $fileMgr->loadGuests();
         <button type="submit">등록</button>
     </form>
     <hr>
-
-    <?php
-    if (!empty($entries)) {
-        foreach ($entries as $entry) {
-            echo "<div class='container'><strong>".htmlspecialchars($entry->name)."</strong> : ";
-            echo nl2br(htmlspecialchars($entry->msg))."<br><small>".$entry->createdAt."</small></div><hr>";
-        }
-    } else {
-        echo "<p>방명록 없음</p>";
-    }
-    ?>
+    <?php if (!empty($entries)): ?>
+        <?php foreach ($entries as $entry): ?>
+            <div class="container">
+                <strong><?= htmlspecialchars($entry->getName()) ?></strong> :
+                <?= nl2br(htmlspecialchars($entry->getMsg())) ?><br>
+                <small><?= $entry->getCreatedAt() ?></small>
+            </div>
+            <hr>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <p>방명록 없음</p>
+    <?php endif; ?>
 </body>
 </html>
