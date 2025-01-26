@@ -43,13 +43,13 @@ class Post implements \JsonSerializable
     }
 
     //동적 데이터 접근자
-    public function __get(string $key): string
-    {
-        if ($key === 'createdAt') {
-            return $this->createdAt->toDateTimeString();
-        }
-        return $this->$key ?? '';
-    }
+//    public function __get(string $key): string
+//    {
+//          if ($key === 'createdAt') {
+//              return $this->createdAt->toDateTimeString();
+//          }
+//        return $this->$key ?? '';
+//    }
 
     public function getId(): string
     {

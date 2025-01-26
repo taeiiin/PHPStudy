@@ -9,7 +9,7 @@ $posts = $postMgr->loadPosts(PostMgr::DESC);
 
 if (!empty($search)) {
     $posts = array_filter($posts, function ($post) use ($search) {
-        return stripos($post->title, $search) !== false || stripos($post->posting, $search) !== false;
+        return stripos($post->getTitle(), $search) !== false || stripos($post->getPosting(), $search) !== false;
     });
 }
 ?>

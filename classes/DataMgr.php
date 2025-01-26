@@ -10,7 +10,7 @@ abstract class DataMgr
 {
     public const ASC = 1;
     public const DESC = 2;
-    protected PDO $db;
+    public PDO $db;
     protected string $table;
     
     public function __construct(string $table)
@@ -31,7 +31,7 @@ abstract class DataMgr
             $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             error_log("Database connection successful.");
         } catch (PDOException $e) {
-            error_log("Database connection failed.");
+            error_log("Database connection failed: " . $e->getMessage());
         }
     }
 

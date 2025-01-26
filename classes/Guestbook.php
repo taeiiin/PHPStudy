@@ -34,14 +34,14 @@ class Guestbook implements \JsonSerializable
         ];
     }
 
-    //동적 데이터 접근자
-    public function __get(string $key): string
-    {
-        if ($key === 'createdAt') {
-            return $this->createdAt->toDateTimeString();
-        }
-        return $this->$key ?? '';
-    }
+//    //동적 데이터 접근자
+//    public function __get(string $key): string
+//    {
+//        if ($key === 'createdAt') {
+//            return $this->createdAt->toDateTimeString();
+//        }
+//        return $this->$key ?? '';
+//    }
 
     public function getId(): string
     {
@@ -58,8 +58,8 @@ class Guestbook implements \JsonSerializable
         return $this->msg;
     }
 
-    public function getCreatedAt(): string
+    public function getCreatedAt(): Carbon
     {
-        return $this->createdAt->toDateTimeString();
+        return $this->createdAt;
     }
 }
