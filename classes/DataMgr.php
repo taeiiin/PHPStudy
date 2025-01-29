@@ -10,14 +10,14 @@ abstract class DataMgr
 {
     public const ASC = 1;
     public const DESC = 2;
-    public PDO $db;
+    public ?PDO $db = null;
     protected string $table;
     
     public function __construct(string $table)
     {
         $this->table = $table;
 
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
         $dotenv->load();
 
         $host = $_ENV['DB_HOST'];
