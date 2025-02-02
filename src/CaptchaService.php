@@ -5,6 +5,7 @@ use GuzzleHTTP\Exception\GuzzleException;
 
 class CaptchaService
 {
+    private const CAPTCHA_IMAGE_URL_FORMAT = 'https://openapi.naver.com/v1/captcha/ncaptcha?key=%s';
     private CaptchaClient $captchaClient;
 
     public function __construct(CaptchaClient $captchaClient)
@@ -12,30 +13,53 @@ class CaptchaService
         $this->captchaClient = $captchaClient;
     }
 
-    public function generateCaptcha(): array
+    public function generateCaptcha(): ?array
     {
-        //echo "Generating Captcha Key...\n";
-        $key = $this->captchaClient->requestCaptchaKey(0);
-        //echo "Captcha Key: $key\n";
+        try {
+            $key = $this->captchaClient->requestCaptchaKey(0);
+            if ($key === null) {
+                return null;
+            }
 
-        //echo "Requesting Captcha Image...\n";
-        $imageUrl = "https://openapi.naver.com/v1/captcha/ncaptcha?key=$key";
-        //echo "Captcha generated!\n";
+            $base64Image = $this->captchaClient->requestCaptchaImage($key);
+            if ($base64Image === null) {
+                return null;
+            }
 
-        return [
-            'key' => $key,
-            'image_url' => $imageUrl
-        ];
+            return [
+                'key' => $key,
+                'image' => $base64Image,
+            ];
+        } catch (GuzzleException $e) {
+            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
+            return null;
+        } catch (\Exception $e) {
+            error_log('Unexpected error: ' . $e->getMessage());
+            return null;
+        }
     }
 
-    public function verifyCaptcha(string $key, string $value): array
+    public function verifyUserInput(string $key, string $value): array
     {
-        $isValid = $this->captchaClient->verifyCaptcha($key, $value);
+        try {
+            $isValid = $this->captchaClient->verifyCaptchaInput($key, $value);
 
-        return [
-            'success' => true,
-            'is_valid' => $isValid,
-            'message' => $isValid ? 'Valid captcha' : 'Invalid captcha',
-        ];
+            return [
+                'is_valid' => $isValid,
+                'message' => $isValid ? 'Valid Captcha' : 'Invalid Captcha',
+            ];
+        } catch (GuzzleException $e) {
+            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
+            return [
+                'is_valid' => false,
+                'message' => $e->getMessage(),
+            ];
+        } catch (\Exception $e) {
+            error_log('Unexpected error: ' . $e->getMessage());
+            return [
+                'is_valid' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
     }
 }

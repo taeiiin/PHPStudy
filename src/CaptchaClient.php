@@ -5,7 +5,6 @@ namespace ApiTest;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
-use ApiTest\ErrorHandler;
 
 class CaptchaClient
 {
@@ -17,7 +16,6 @@ class CaptchaClient
     private string $clientId;
     private string $clientSecret;
 
-    //API 통신 클라이언트 초기화
     public function __construct(string $clientId, string $clientSecret)
     {
         $this->clientId = $clientId;
@@ -31,7 +29,6 @@ class CaptchaClient
         ]);
     }
 
-    //캡차 키 발급 요청
     public function requestCaptchaKey(int $code): ?string
     {
         $query = ['code' => $code];
@@ -49,12 +46,10 @@ class CaptchaClient
                 ErrorHandler::logApiError($data['errorCode'], $data['errorMessage']);
                 return null;
             }
-
             return $data['key'];
 
         } catch (ClientException $e) {
-            $statusCode = $e->getCode();
-            ErrorHandler::logHttpError($statusCode, $e->getMessage());
+            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
             return null;
         } catch (RequestException $e) {
             error_log('Network Error : ' . $e->getMessage());
@@ -65,7 +60,6 @@ class CaptchaClient
         }
     }
 
-    //캡차 이미지 요청
     public function requestCaptchaImage(string $key): ?string
     {
         $query = ['key' => $key];
@@ -74,16 +68,13 @@ class CaptchaClient
                 'query' => $query,
             ]);
 
-            if (isset($data['errorCode'])) {
-                ErrorHandler::logApiError($data['errorCode'], $data['errorMessage']);
-                return null;
-            }
+            $imageData = $response->getBody()->getContents();
+            $base64Image = base64_encode($imageData);
 
-            return $response->getBody()->getContents();
+            return "data:image/jpg;base64," . $base64Image;
 
         } catch (ClientException $e) {
-            $statusCode = $e->getResponse()->getStatusCode();
-            ErrorHandler::logHttpError($statusCode, $e->getMessage());
+            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
             return null;
         } catch (\Exception $e) {
             error_log('Unexpected Error : ' . $e->getMessage());
@@ -91,8 +82,7 @@ class CaptchaClient
         }
     }
 
-    //캡차 입력 검증
-    public function verifyCaptchaApi(string $key, string $value): bool
+    public function verifyCaptchaInput(string $key, string $value): bool
     {
         $query = [
             'code' => 1,
@@ -118,8 +108,7 @@ class CaptchaClient
             return $data['result'];
 
         } catch (ClientException $e) {
-            $statusCode = $e->getResponse()->getStatusCode();
-            ErrorHandler::logHttpError($statusCode, $e->getMessage());
+            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
             return false;
         } catch (\Exception $e) {
             error_log('Unexpected Error : ' . $e->getMessage());

@@ -18,14 +18,12 @@ $captchaKey = '';
 $captchaImageUrl = '';
 $resultMsg = '';
 
-//캡차 키와 이미지 생성
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $captchaData = $captchaService->generateCaptcha();
     $captchaKey = $captchaData['key'];
-    $captchaImageUrl = $captchaData['image_url'];
+    $captchaImage = $captchaData['image'];
 }
 
-//사용자 입력 검증
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $captchaKey = $_POST['key'] ?? '';
     $userValue = $_POST['value'] ?? '';
@@ -50,9 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <h1>Captcha Verify</h1>
-    <?php if (!empty($captchaKey) && !empty($captchaImageUrl)): ?>
+    <?php if (!empty($captchaKey) && !empty($captchaImage)): ?>
         <div>
-            <p><img src="<?= htmlspecialchars($captchaImageUrl) ?>" alt="Captcha Image"></p>
+            <p><img src="<?= htmlspecialchars($captchaImage) ?>" alt="Captcha Image"></p>
         </div>
         <button onclick="window.location.href='index.php?refresh=true'" style="margin-bottom: 10px; padding:5px 10px;">Refresh Captcha</button>
     <?php endif; ?>
