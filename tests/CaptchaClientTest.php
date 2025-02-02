@@ -3,7 +3,7 @@
 namespace ApiTest;
 
 use PHPUnit\Framework\TestCase;
-use ApiTest\CaptchaClient;
+use Dotenv\Dotenv;
 
 class CaptchaClientTest extends TestCase
 {
@@ -11,28 +11,52 @@ class CaptchaClientTest extends TestCase
 
     protected function setUp(): void
     {
-        $envFile = ".env";
-        $clientId = 'O5RNj_QUem1aamQOLDfO';
-        $clientSecret = '319LhOgaB1';
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+        $dotenv->load();
+
+        $clientId = $_ENV['NAVER_API_CLIENT_ID'];
+        $clientSecret = $_ENV['NAVER_API_CLIENT_SECRET'];
 
         $this->captchaClient = new CaptchaClient($clientId, $clientSecret);
     }
+
+    public function testSendAPIRequest(): void
+    {
+        $response = $this->captchaClient->sendAPIRequest('/invalid-endpoint', []);
+        $this->assertNull($response, 'Invalid endpoint response should return null');
+    }
+
 
     public function testRequestCaptchaKey(): void
     {
         $key = $this->captchaClient->requestCaptchaKey(0);
         $this->assertNotEmpty($key, 'Captcha Key should not be empty');
+        $this->assertIsString($key, 'Captcha Key should be a string');
     }
 
-    public function testVerifyCaptchaApi(): void
+    public function testRequestCaptchaImage(): void
     {
         $key = $this->captchaClient->requestCaptchaKey(0);
+        $this->assertNotEmpty($key, 'Failed to get Captcha Key');
+
         $imageData = $this->captchaClient->requestCaptchaImage($key);
         $this->assertNotEmpty($imageData, 'Captcha Image should not be empty');
+        $this->assertMatchesRegularExpression('/^data:image\/jpg;base64,/', $imageData);
+    }
 
-//        $value = 'test_value';
-//        $isValid = $this->captchaClient->verifyCaptchaApi($key, $value);
-//        $this->assertFalse($isValid, 'Incorrect captcha value');
+    public function testVerifyCaptchaInput(): void
+    {
+        $key = $this->captchaClient->requestCaptchaKey(0);
+        $this->assertNotEmpty($key, 'Captcha Key should not be empty');
+
+        //$validInput = 'correct_value';
+        $invalidInput = 'wrong_value';
+
+        //$validResult = $this->captchaClient->verifyCaptchaInput($key, $validInput);
+        //$this->assertTrue($validInput, 'Correct Input');
+
+        $invalidResult = $this->captchaClient->verifyCaptchaInput($key, $invalidInput);
+        $this->assertFalse($invalidResult, 'Incorrect input');
     }
 
 }

@@ -29,90 +29,69 @@ class CaptchaClient
         ]);
     }
 
-    public function requestCaptchaKey(int $code): ?string
+    public function sendAPIRequest(string $endpoint, array $query = [], bool $jsonParse = true): mixed
     {
-        $query = ['code' => $code];
         try {
-            $response = $this->client->get(self::ENDPOINT_KEY, [
-                'query' => $query,
-            ]);
+            $response = $this->client->get($endpoint, ['query' => $query]);
+
+            if (!$jsonParse) {
+                return $response->getBody()->getContents();
+            }
 
             $data = json_decode(
                 $response->getBody()->getContents(),
                 true,
             );
 
-            if (isset($data['errorCode'])) {
-                ErrorHandler::logApiError($data['errorCode'], $data['errorMessage']);
+            if (isset($data['error_code'])) {
+                ErrorHandler::logApiError($data['error_code'], $data['error_message'] ?? 'Unknown error');
                 return null;
             }
-            return $data['key'];
-
+            return $data;
         } catch (ClientException $e) {
             ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
-            return null;
-        } catch (RequestException $e) {
-            error_log('Network Error : ' . $e->getMessage());
-            return null;
         } catch (\Exception $e) {
-            error_log('Unexpected Error : ' . $e->getMessage());
+            ErrorHandler::logHttpError(500, $e->getMessage());
+        }
+        return null;
+    }
+
+    public function requestCaptchaKey(int $code): ?string
+    {
+        $data = $this->sendAPIRequest(self::ENDPOINT_KEY, ['code' => $code]);
+
+        if (!$data || isset($data['errorCode'])) {
+            ErrorHandler::logApiError($data['errorCode'], $data['errorMessage'] ?? 'Unknown error');
             return null;
         }
+
+        return $data['key'] ?? null;
     }
 
     public function requestCaptchaImage(string $key): ?string
     {
-        $query = ['key' => $key];
-        try {
-            $response = $this->client->get(self::ENDPOINT_IMAGE, [
-                'query' => $query,
-            ]);
+        $imageData = $this->sendAPIRequest(self::ENDPOINT_IMAGE, ['key' => $key], false);
 
-            $imageData = $response->getBody()->getContents();
-            $base64Image = base64_encode($imageData);
-
-            return "data:image/jpg;base64," . $base64Image;
-
-        } catch (ClientException $e) {
-            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
-            return null;
-        } catch (\Exception $e) {
-            error_log('Unexpected Error : ' . $e->getMessage());
+        if (!$imageData) {
             return null;
         }
+
+        return sprintf("data:image/jpg;base64,%s", base64_encode($imageData));
     }
 
     public function verifyCaptchaInput(string $key, string $value): bool
     {
-        $query = [
+        $data = $this->sendAPIRequest(self::ENDPOINT_KEY, [
             'code' => 1,
             'key' => $key,
             'value' => $value,
-        ];
-        try {
-            $response = $this->client->get(self::ENDPOINT_KEY, [
-                'query' => $query,
-            ]);
+        ]);
 
-            $data = json_decode(
-                $response->getBody()->getContents(),
-                true,
-                flags: JSON_THROW_ON_ERROR
-            );
-
-            if (isset($data['errorCode'])) {
-                ErrorHandler::logApiError($data['errorCode'], $data['errorMessage']);
-                return false;
-            }
-
-            return $data['result'];
-
-        } catch (ClientException $e) {
-            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
-            return false;
-        } catch (\Exception $e) {
-            error_log('Unexpected Error : ' . $e->getMessage());
+        if (!$data || isset($data['errorCode'])) {
+            ErrorHandler::logApiError($data['errorCode'], $data['errorMessage'] ?? 'Unknown error');
             return false;
         }
+
+        return $data['result'] ?? false;
     }
 }

@@ -15,21 +15,40 @@ $captchaClient = new CaptchaClient($clientId, $clientSecret);
 $captchaService = new CaptchaService($captchaClient);
 
 $captchaKey = '';
-$captchaImageUrl = '';
+$captchaImage = '';
 $resultMsg = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $captchaData = $captchaService->generateCaptcha();
-    $captchaKey = $captchaData['key'];
-    $captchaImage = $captchaData['image'];
+function escape(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+function handleGetRequest(CaptchaService $captchaService): array
+{
+    $captchaData = $captchaService->generateCaptcha();
+    return [
+        'key' => $captchaData['key'] ?? '',
+        'image' => $captchaData['image'] ?? '',
+    ];
+}
+
+function handlePostRequest(CaptchaService $captchaService): string
+{
     $captchaKey = $_POST['key'] ?? '';
     $userValue = $_POST['value'] ?? '';
 
+    if (!$captchaKey || !$userValue) {
+        return "Invalid Input";
+    }
+
     $response = $captchaService->verifyUserInput($captchaKey, $userValue);
-    $resultMsg = $response['message'];
+    return $response['message'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    ['key' => $captchaKey, 'image' => $captchaImage] = handleGetRequest($captchaService);
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $resultMsg = handlePostRequest($captchaService);
 }
 ?>
 
@@ -39,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Captcha Verify</title>
     <script>
-        const resultMsg = "<?= htmlspecialchars($resultMsg, ENT_QUOTES) ?>";
+        const resultMsg = "<?= escape($resultMsg) ?>";
         if (resultMsg) {
             alert(resultMsg);
             window.location.href = "index.php";
@@ -50,13 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>Captcha Verify</h1>
     <?php if (!empty($captchaKey) && !empty($captchaImage)): ?>
         <div>
-            <p><img src="<?= htmlspecialchars($captchaImage) ?>" alt="Captcha Image"></p>
+            <p><img src="<?= escape($captchaImage) ?>" alt="Captcha Image"></p>
         </div>
         <button onclick="window.location.href='index.php?refresh=true'" style="margin-bottom: 10px; padding:5px 10px;">Refresh Captcha</button>
     <?php endif; ?>
 
     <form action="index.php" method="POST">
-        <input type="hidden" name="key" value="<?= htmlspecialchars($captchaKey ?? '') ?>">
+        <input type="hidden" name="key" value="<?= escape($captchaKey) ?>">
         <label for="value">Enter Captcha </label>
         <input type="text" id="value" name="value" required>
         <button type="submit">Verify Captcha</button>

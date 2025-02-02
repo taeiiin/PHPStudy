@@ -17,3 +17,6 @@ data/
 
 #환경 변수 파일
 .env
+
+#SSL 인증서
+cacert.pem
