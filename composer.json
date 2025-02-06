@@ -1,18 +1,15 @@
 {
-    "name": "tikang/test",
+    "name": "tikang/apitest",
     "autoload": {
         "psr-4": {
-            "Test\\": "classes/",
-            "ApiTest\\": "src/"
+            "ApiTest\\": "src/",
+            "ApiTest\\Exception\\": "src/Exception/"
         }
     },
-    "version": "1.0.0",
     "require": {
-      "ext-pdo": "*",
-        "nesbot/carbon": "^3.8",
-        "carbonphp/carbon-doctrine-types": "^3.2",
+        "guzzlehttp/guzzle": "^7.9",
         "vlucas/phpdotenv": "^5.6",
-        "guzzlehttp/guzzle": "^7.9"
+        "laravel/framework": "^4.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5"

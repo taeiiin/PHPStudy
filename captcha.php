@@ -13,9 +13,10 @@ $clientSecret = $_ENV['NAVER_API_CLIENT_SECRET'];
 
 $captchaClient = new CaptchaClient($clientId, $clientSecret);
 $captchaService = new CaptchaService($captchaClient);
+$captchaData = $captchaService->generateCaptcha();
 
-$captchaKey = '';
-$captchaImage = '';
+$captchaKey = $captchaData['key'] ?? '';
+$captchaImage = $captchaData['image'] ?? '';
 $resultMsg = '';
 
 function escape(string $value): string

@@ -1,10 +1,8 @@
 <?php
-
 namespace ApiTest;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\RequestException;
 
 class CaptchaClient
 {
@@ -29,69 +27,44 @@ class CaptchaClient
         ]);
     }
 
-    public function sendAPIRequest(string $endpoint, array $query = [], bool $jsonParse = true): mixed
+    public function sendAPIRequest(string $endpoint, array $query = [], bool $jsonParse = true): array|string
     {
         try {
             $response = $this->client->get($endpoint, ['query' => $query]);
-
-            if (!$jsonParse) {
-                return $response->getBody()->getContents();
-            }
-
-            $data = json_decode(
-                $response->getBody()->getContents(),
-                true,
-            );
-
-            if (isset($data['error_code'])) {
-                ErrorHandler::logApiError($data['error_code'], $data['error_message'] ?? 'Unknown error');
-                return null;
-            }
-            return $data;
+            $responseBody = $response->getBody()->getContents();
+            return $jsonParse ? json_decode($responseBody, true) : $responseBody;
         } catch (ClientException $e) {
-            ErrorHandler::logHttpError($e->getCode(), $e->getMessage());
+            return false;
         } catch (\Exception $e) {
-            ErrorHandler::logHttpError(500, $e->getMessage());
+            return false;
         }
-        return null;
     }
 
-    public function requestCaptchaKey(int $code): ?string
+    public function requestCaptchaKey(int $code): CaptchaResponse
     {
-        $data = $this->sendAPIRequest(self::ENDPOINT_KEY, ['code' => $code]);
-
-        if (!$data || isset($data['errorCode'])) {
-            ErrorHandler::logApiError($data['errorCode'], $data['errorMessage'] ?? 'Unknown error');
-            return null;
-        }
-
-        return $data['key'] ?? null;
+        $response = $this->sendAPIRequest(self::ENDPOINT_KEY, ['code' => $code]);
+        return new CaptchaResponse($response);
     }
 
     public function requestCaptchaImage(string $key): ?string
     {
         $imageData = $this->sendAPIRequest(self::ENDPOINT_IMAGE, ['key' => $key], false);
-
-        if (!$imageData) {
-            return null;
-        }
-
         return sprintf("data:image/jpg;base64,%s", base64_encode($imageData));
     }
 
-    public function verifyCaptchaInput(string $key, string $value): bool
+
+    public function verifyCaptchaInput(string $key, string $value): ?CaptchaResponse
     {
-        $data = $this->sendAPIRequest(self::ENDPOINT_KEY, [
+        $response = $this->sendAPIRequest(self::ENDPOINT_KEY, [
             'code' => 1,
             'key' => $key,
             'value' => $value,
         ]);
 
-        if (!$data || isset($data['errorCode'])) {
-            ErrorHandler::logApiError($data['errorCode'], $data['errorMessage'] ?? 'Unknown error');
-            return false;
+        if ($response === false) {
+            return null;
         }
 
-        return $data['result'] ?? false;
+        return new CaptchaResponse($response);
     }
 }
