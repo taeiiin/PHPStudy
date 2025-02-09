@@ -1,7 +1,7 @@
 <?php
 namespace ApiTest;
 
-use GuzzleHTTP\Exception\GuzzleException;
+use ApiTest\Exception\NaverApiException;
 
 class CaptchaService
 {
@@ -12,47 +12,41 @@ class CaptchaService
         $this->captchaClient = $captchaClient;
     }
 
-    public function generateCaptcha(): ?array
+    public function generateCaptchaImage(): ?array
     {
         try {
-            $key = $this->captchaClient->requestCaptchaKey(0);
-            $captchaImage = $this->captchaClient->requestCaptchaImage($key);
+            $captchaResponse = $this->captchaClient->requestCaptchaKey(0);
+            $captchaImage = $this->captchaClient->requestCaptchaImage($captchaResponse->getKey());
 
-            return ($key && $captchaImage) ? ['key' => $key, 'image' => $captchaImage] : null;
-        } catch (\Exception $e) {
-            return $this->handleException($e, 'Failed to generate captcha');
+            return [
+                'key' => $captchaResponse->getKey(),
+                'image' => $captchaImage,
+            ];
+        } catch (NaverApiException $e) {
+            error_log("Captcha generation failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function verifyCaptcha(string $key, string $value): bool
+    {
+        try {
+            return $this->captchaClient->verifyCaptchaInput($key, $value)->getData()['result'] == 1;
+        } catch (NaverApiException $e) {
+            return false;
         }
     }
 
     public function verifyUserInput(string $key, string $value): array
     {
-        try {
-            $isValid = $this->captchaClient->verifyCaptchaInput($key, $value);
-            return $this->formatResponse($isValid);
-        } catch (\Exception $e) {
-            return $this->handleException($e, 'Captcha verification failed');
-        }
-    }
-
-    private function handleException(\Exception $e, string $errorMessage): ?array
-    {
-        if ($e instanceof GuzzleException) {
-            ErrorHandler::logHttpError($e->getCode(), $errorMessage);
-        } else {
-            ErrorHandler::logHttpError(500, "Unexpected error: " . $e->getMessage());
-        }
-
         return [
-            'is_valid' => false,
-            'message' => $errorMessage . ": " . $e->getMessage(),
+            'is_valid' => $this->isValidInput($key, $value) && $this->verifyCaptcha($key, $value),
+            'message' => $this->isValidInput($key, $value) ? 'Valid Captcha' : 'Invalid Captcha',
         ];
     }
 
-    private function formatResponse(bool $isValid): array
+    private function isValidInput(?string $key, ?string $value): bool
     {
-        return [
-            'is_valid' => $isValid,
-            'message' => $isValid ? 'Valid Captcha' : 'Invalid Captcha',
-        ];
+        return !empty($key) && !empty($value);
     }
 }

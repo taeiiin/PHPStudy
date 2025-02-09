@@ -1,8 +1,10 @@
 <?php
 namespace ApiTest;
 
+use ApiTest\Exception\NaverApiException;
+use ApiTest\Exception\NaverCaptchaException;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\GuzzleException;
 
 class CaptchaClient
 {
@@ -27,44 +29,38 @@ class CaptchaClient
         ]);
     }
 
-    public function sendAPIRequest(string $endpoint, array $query = [], bool $jsonParse = true): array|string
+    private function sendAPIRequest(string $endpoint, array $query = [], bool $jsonParse = true): array|string
     {
         try {
             $response = $this->client->get($endpoint, ['query' => $query]);
             $responseBody = $response->getBody()->getContents();
             return $jsonParse ? json_decode($responseBody, true) : $responseBody;
-        } catch (ClientException $e) {
-            return false;
-        } catch (\Exception $e) {
-            return false;
+        } catch (GuzzleException | \Exception $e) {
+            $apiException = new NaverApiException($e->getMessage(), $e->getCode());
+            return [];
         }
     }
 
-    public function requestCaptchaKey(int $code): CaptchaResponse
+    public function requestCaptchaKey(int $code): ?CaptchaResponse
     {
         $response = $this->sendAPIRequest(self::ENDPOINT_KEY, ['code' => $code]);
-        return new CaptchaResponse($response);
+        return empty($response) ? null : new CaptchaResponse($response);
     }
 
-    public function requestCaptchaImage(string $key): ?string
+    public function requestCaptchaImage(string $key): string
     {
         $imageData = $this->sendAPIRequest(self::ENDPOINT_IMAGE, ['key' => $key], false);
-        return sprintf("data:image/jpg;base64,%s", base64_encode($imageData));
+        error_log("Generated Captcha Image: " . substr(base64_encode($imageData), 0, 50) . "..."); // 앞부분만 출력
+
+        return base64_encode($imageData);
     }
 
-
-    public function verifyCaptchaInput(string $key, string $value): ?CaptchaResponse
+    public function verifyCaptchaInput(string $key, string $value): CaptchaResponse
     {
-        $response = $this->sendAPIRequest(self::ENDPOINT_KEY, [
+        return new CaptchaResponse($this->sendAPIRequest(self::ENDPOINT_KEY, [
             'code' => 1,
             'key' => $key,
             'value' => $value,
-        ]);
-
-        if ($response === false) {
-            return null;
-        }
-
-        return new CaptchaResponse($response);
+        ]));
     }
 }

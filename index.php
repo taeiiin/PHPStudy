@@ -1,104 +1,85 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+require_once "vendor/autoload.php";
 
-require_once __DIR__ . '/vendor/autoload.php';
+use ApiTest\CaptchaClient;
+use ApiTest\CaptchaService;
+use Dotenv\Dotenv;
 
-use Test\PostMgr;
-use Test\GuestMgr;
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
-$postMgr = new PostMgr();
-$guestMgr = new GuestMgr();
-$posts = $postMgr->loadPosts();
-$guests = $guestMgr->loadGuests();
+$clientId = $_ENV['NAVER_API_CLIENT_ID'];
+$clientSecret = $_ENV['NAVER_API_CLIENT_SECRET'];
+
+$captchaClient = new CaptchaClient($clientId, $clientSecret);
+$captchaService = new CaptchaService($captchaClient);
+$captchaData = $captchaService->generateCaptchaImage();
+
+$captchaKey = $captchaData['key'] ?? '';
+$captchaImage = $captchaData['image'] ?? '';
+$resultMsg = '';
+
+function escape(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+
+function handleGetRequest(CaptchaService $captchaService): array
+{
+    $captchaData = $captchaService->generateCaptchaImage();
+    return [
+        'key' => $captchaData['key'] ?? '',
+        'image' => $captchaData['image'] ? "data:image/jpeg;base64," . $captchaData['image'] : '',
+    ];
+}
+
+function handlePostRequest(CaptchaService $captchaService): string
+{
+    $captchaKey = $_POST['key'] ?? '';
+    $userValue = $_POST['value'] ?? '';
+
+    if (!$captchaKey || !$userValue) {
+        return "Invalid Input";
+    }
+
+    $response = $captchaService->verifyUserInput($captchaKey, $userValue);
+    return $response['message'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    ['key' => $captchaKey, 'image' => $captchaImage] = handleGetRequest($captchaService);
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $resultMsg = handlePostRequest($captchaService);
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Test</title>
-    <link rel="stylesheet" href="https://unpkg.com/mvp.css">
-    <style>
-        .container {
-            display: flex;
-            width: 100%;
-            height: 80vh;
+    <title>Captcha Verify</title>
+    <script>
+        const resultMsg = "<?= escape($resultMsg) ?>";
+        if (resultMsg) {
+            alert(resultMsg);
+            window.location.href = "index.php";
         }
-        .guestb {
-            width: 20%;
-            padding: 10px;
-            margin: 10px;
-            border-right: 1px solid #ccc;
-            overflow-y: auto;
-        }
-        .board {
-            width: 80%;
-            padding: 10px;
-            margin: 10px;
-            overflow-y: auto;
-        }
-        .title {
-            text-align: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        hr {
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
-        a {
-            display: block;
-            text-align: center;
-            text-decoration: none;
-            color: #333;
-        }
-        h2 {
-            text-align: center;
-        }
-    </style>
+    </script>
 </head>
 <body>
-    <h1 class="title">Test Page</h1>
-    <div class="container">
-        <div class="guestb">
-            <h2>Guest Book</h2>
-            <a href="guestb.php">방명록 보기</a><br>
-            <hr>
-            <?php if (!empty($guests)): ?>
-                <?php foreach ($guests as $guest): ?>
-                    <div>
-                        <strong><?= htmlspecialchars($guest->getName()) ?></strong> :
-                        <?= nl2br(htmlspecialchars($guest->getMsg())) ?><br>
-                        <small><?= $guest->getCreatedAt() ?></small>
-                    </div>
-                    <hr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <p>방명록 없음</p>
-            <?php endif; ?>
+    <h1>Captcha Verify</h1>
+    <?php if (!empty($captchaKey) && !empty($captchaImage)): ?>
+        <div>
+            <p><img src="<?= escape($captchaImage) ?>" alt="Captcha Image"></p>
         </div>
-        <div class="board">
-            <h2>Board</h2>
-            <a href="board.php">게시판 보기</a><br>
-            <hr>
-            <?php if (!empty($posts)): ?>
-                <?php foreach ($posts as $post): ?>
-                    <div>
-                        <h3>
-                            <?= htmlspecialchars($post->getTitle()) ?>
-                            <small><?= htmlspecialchars($post->getWriter()) ?></small>
-                        </h3>
-                        <p><?= nl2br(htmlspecialchars($post->getPosting())) ?></p>
-                        <small><?= htmlspecialchars($post->getCategory()) ?> | <?= $post->getCreatedAt() ?></small>
-                    </div>
-                    <hr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <p>게시글 없음</p>
-            <?php endif; ?>
-        </div>
-    </div>
+        <button onclick="window.location.href='index.php?refresh=true'" style="margin-bottom: 10px; padding:5px 10px;">Refresh Captcha</button>
+    <?php endif; ?>
+
+    <form action="index.php" method="POST">
+        <input type="hidden" name="key" value="<?= escape($captchaKey) ?>">
+        <label for="value">Enter Captcha </label>
+        <input type="text" id="value" name="value" required>
+        <button type="submit">Verify Captcha</button>
+    </form>
 </body>
 </html>
