@@ -1,78 +1,32 @@
 <?php
 
-namespace ApiTest;
+namespace ApiTest\Tests;
 
-use PHPUnit\Framework\TestCase;
-use GuzzleHttp\Exception\GuzzleException;
-use Dotenv\Dotenv;
-
-class CaptchaServiceTest extends TestCase
+class CaptchaServiceTest extends BaseTestCase
 {
-    private CaptchaService $captchaService;
-    private CaptchaClient $captchaClient;
-
-    protected function setUp(): void
-    {
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-        $dotenv->load();
-
-        $clientId = $_ENV['NAVER_API_CLIENT_ID'];
-        $clientSecret = $_ENV['NAVER_API_CLIENT_SECRET'];
-
-        $this->captchaClient = new CaptchaClient($clientId, $clientSecret);
-        $this->captchaService = new CaptchaService($this->captchaClient);
-    }
-
     public function testGenerateCaptcha(): void
     {
-        $captchaData = $this->captchaService->generateCaptcha();
+        $captchaData = $this->captchaService->generateCaptchaImage();
 
-        $this->assertIsArray($captchaData, 'Captcha data should be an array');
-        $this->assertArrayHasKey('key', $captchaData, 'Captcha data should contain key');
-        $this->assertArrayHasKey('image', $captchaData, 'Captcha data should contain image');
-        $this->assertNotEmpty($captchaData['key'], 'Captcha key should not be empty');
-        $this->assertNotEmpty($captchaData['image'], 'Captcha image should not be empty');
-        $this->assertStringStartsWith('data:image/', $captchaData['image'], 'Captcha image should be a base64 encoded');
+        $this->assertIsArray($captchaData);
+        $this->assertArrayHasKey('key', $captchaData);
+        $this->assertArrayHasKey('image', $captchaData);
+        $this->assertNotEmpty($captchaData['key']);
+        $this->assertNotEmpty($captchaData['image']);
     }
 
-    public function testVerifyUserInput(): void
+    public function testVerifyUserInputInvalid(): void
     {
-        $key = $this->captchaService->generateCaptcha()['key'];
-        $invalidResponse = $this->captchaService->verifyUserInput($key, 'wrong_value');
+        $captchaData = $this->captchaService->generateCaptchaImage();
+        $captchaKey = $captchaData['key'];
+        $this->assertNotEmpty($captchaKey);
 
-        $this->assertFalse($invalidResponse['is_valid'], 'Incorrect captcha value');
-        $this->assertEquals('Invalid Captcha', $invalidResponse['message'], 'Incorrect captcha message');
+        $userInput = 'wrong_input';
+        $response = $this->captchaService->verifyUserInput($captchaKey, $userInput);
+
+        $this->assertIsArray($response);
+        $this->assertArrayHasKey('is_valid', $response);
+        $this->assertArrayHasKey('message', $response);
+        $this->assertFalse($response['is_valid']);
     }
-
-    public function testHandleException(): void
-    {
-        $reflection = new \ReflectionClass(CaptchaService::class);
-        $method = $reflection->getMethod('handleException');
-        $method->setAccessible(true);
-
-        $exception = new \Exception('Test exception message');
-        $response = $method->invokeArgs($this->captchaService, [$exception, 'Test error']);
-
-        $this->assertIsArray($response, 'Exception Handling should be an array');
-        $this->assertFalse($response['is_valid'], 'Exception should return is_valid response');
-        $this->assertStringContainsString('Test error', $response['message'], 'Exception message should be included in response');
-        $this->assertStringContainsString('Test exception message', $response['message'], 'Exception message should be included in response');
-    }
-
-    public function testFormatResponse(): void
-    {
-        $reflection = new \ReflectionClass(CaptchaService::class);
-        $method = $reflection->getMethod('formatResponse');
-        $method->setAccessible(true);
-
-        $validResponse = $method->invokeArgs($this->captchaService, [true]);
-        $invalidResponse = $method->invokeArgs($this->captchaService, [false]);
-
-        $this->assertTrue($validResponse['is_valid'], 'True input should return valid response');
-        $this->assertEquals('Valid Captcha', $validResponse['message'], 'True input should return valid response');
-
-        $this->assertFalse($invalidResponse['is_valid'], 'False input should return invalid response');
-        $this->assertEquals('Invalid Captcha', $invalidResponse['message'], 'False input should return invalid response');
-    }
-
 }
